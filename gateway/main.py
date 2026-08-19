@@ -5,6 +5,14 @@ from gateway.auth import verify_api_key
 
 app = FastAPI(title="Agent Gateway")
 
+@app.get("/")
+def read_root():
+    return {
+        "status": "online",
+        "service": "CloudSentry Agent Gateway",
+        "documentation": "/docs"
+    }
+
 class AlertPayload(BaseModel):
     service_name: str
     environment: str
