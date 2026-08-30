@@ -51,7 +51,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* SELECTBOX BACKGROUND & ARROW FIX */
+    /* SELECTBOX COMPLETE BACKGROUND & ARROW FIX */
     div[data-baseweb='select'],
     div[data-baseweb='select'] > div,
     div[data-baseweb='select'] [role='button'],
