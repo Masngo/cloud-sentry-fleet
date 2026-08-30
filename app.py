@@ -22,26 +22,26 @@ st.markdown("""
     }
     
     /* Top Header Bar */
-    header[data-testid="stHeader"] {
+    header[data-testid='stHeader'] {
         background-color: rgba(15, 23, 42, 0.95) !important;
         border-bottom: 1px solid #1E293B !important;
     }
     
-    header[data-testid="stHeader"] * {
+    header[data-testid='stHeader'] * {
         color: #38BDF8 !important;
     }
 
     /* Sidebar Panel Styling */
-    section[data-testid="stSidebar"] {
+    section[data-testid='stSidebar'] {
         background-color: #1E293B !important;
         border-right: 1px solid #334155 !important;
     }
     
-    section[data-testid="stSidebar"] * {
+    section[data-testid='stSidebar'] * {
         color: #F8FAFC !important;
     }
     
-    section[data-testid="stSidebar"] .stCaption {
+    section[data-testid='stSidebar'] .stCaption {
         color: #94A3B8 !important;
     }
 
@@ -51,23 +51,23 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* SELECTBOX COMPLETE BACKGROUND & ARROW FIX */
-    div[data-baseweb="select"],
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="select"] [role="button"],
-    div[data-baseweb="select"] [aria-hidden="true"],
-    div[data-baseweb="select"] div {
+    /* SELECTBOX BACKGROUND & ARROW FIX */
+    div[data-baseweb='select'],
+    div[data-baseweb='select'] > div,
+    div[data-baseweb='select'] [role='button'],
+    div[data-baseweb='select'] [aria-hidden='true'],
+    div[data-baseweb='select'] div {
         background-color: #0F172A !important;
         color: #F8FAFC !important;
     }
 
-    div[data-baseweb="select"] > div {
+    div[data-baseweb='select'] > div {
         border: 1px solid #334155 !important;
         border-radius: 8px !important;
     }
 
     /* Target SVG Arrow Icon specifically */
-    div[data-baseweb="select"] svg {
+    div[data-baseweb='select'] svg {
         fill: #38BDF8 !important;
         color: #38BDF8 !important;
         opacity: 1 !important;
@@ -75,18 +75,18 @@ st.markdown("""
     }
 
     /* Dropdown Menu Items */
-    ul[data-baseweb="menu"] {
+    ul[data-baseweb='menu'] {
         background-color: #1E293B !important;
         border: 1px solid #334155 !important;
         border-radius: 8px !important;
     }
 
-    li[data-baseweb="option"] {
+    li[data-baseweb='option'] {
         color: #F8FAFC !important;
         background-color: #1E293B !important;
     }
 
-    li[data-baseweb="option"]:hover, li[aria-selected="true"] {
+    li[data-baseweb='option']:hover, li[aria-selected='true'] {
         background-color: #334155 !important;
         color: #38BDF8 !important;
     }
@@ -100,7 +100,7 @@ st.markdown("""
     }
 
     /* Metric Cards */
-    div[data-testid="stMetric"] {
+    div[data-testid='stMetric'] {
         background-color: #1E293B !important;
         border: 1px solid #334155 !important;
         border-radius: 10px !important;
@@ -108,7 +108,7 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     }
     
-    div[data-testid="stMetricValue"] {
+    div[data-testid='stMetricValue'] {
         font-family: 'Fira Code', monospace, sans-serif !important;
         font-size: 1.8rem !important;
         font-weight: 700 !important;
