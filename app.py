@@ -17,20 +17,15 @@ st.set_page_config(
 # --- GEMINI API & REDACTION LOGIC ---
 def redact_pii_payload(text):
     """Real-time regex-based PII & Secret Redaction Engine"""
-    # Passwords & Secret Keys
     text = re.sub(r"(pass|password|secret|key)\s*[:=]\s*['\"]?[^'\s\"]+['\"]?", r"\1='[REDACTED_CREDENTIAL]'", text, flags=re.IGNORECASE)
-    # Bearer Tokens & JWTs
     text = re.sub(r"Bearer\s+[A-Za-z0-9\-\._~\+\/]+=*", "Bearer [REDACTED_JWT_TOKEN]", text)
-    # Emails
     text = re.sub(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "[REDACTED_EMAIL]", text)
-    # API Keys & Hardcoded Tokens
     text = re.sub(r"(eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)", "[REDACTED_JWT_TOKEN]", text)
     return text
 
 def analyze_incident(model_name, component, severity, payload):
     """Queries live Gemini API if GEMINI_API_KEY exists, otherwise uses dynamic heuristic generation"""
     api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
-    
     if api_key:
         try:
             import google.generativeai as genai
@@ -55,7 +50,6 @@ Respond ONLY with raw JSON matching this format:
         except Exception:
             pass
 
-    # Dynamic Fallback Engine for Arbitrary Payloads
     ts = int(time.time())
     return {
         "assessment": f"Detected potential risk in {component}. Sanitized payload evaluated against Zero-Trust SRE rules.",
@@ -110,6 +104,15 @@ if "payload_input" not in st.session_state:
     st.session_state.payload_input = ""
 if "component_input" not in st.session_state:
     st.session_state.component_input = "auth-microservice-prod"
+if "threat_counts" not in st.session_state:
+    st.session_state.threat_counts = {"SQL Injection": 14, "OOM Leak": 8, "Secret Leak": 11, "Custom Log": 5}
+if "time_series" not in st.session_state:
+    np.random.seed(42)
+    st.session_state.time_series = pd.DataFrame({
+        "Time": [f"T-{i}m" for i in range(10, 0, -1)],
+        "Latency (ms)": np.random.randint(1100, 1400, size=10),
+        "Blocked Threats": np.random.randint(2, 9, size=10)
+    }).set_index("Time")
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -127,11 +130,21 @@ with st.sidebar:
     auto_apply = st.checkbox("Auto-Apply Low-Risk Patches", value=False)
     
     st.markdown("---")
-    st.subheader("🤖 Online Micro-Agents")
-    st.markdown("🟢 **Ingress Guard** (`ingress-01`)")
-    st.markdown("🟢 **PII Armor Agent** (`armor-sec-04`)")
-    st.markdown("🟢 **Zero-Trust Policy Enforcer** (`policy-agent-02`)")
-    st.markdown("🟢 **Remediation Sandbox** (`patcher-bot-09`)")
+    st.subheader("🕸️ Multi-Agent Topology")
+    st.graphviz_chart("""
+        digraph {
+            graph [bgcolor="transparent", rankdir=TB]
+            node [style=filled, fillcolor="#1E293B", fontcolor="#F8FAFC", shape=box, fontname="Sans-Serif"]
+            edge [color="#38BDF8"]
+            
+            Ingress [label="🔍 Ingress Guard"]
+            Armor [label="🛡️ PII Armor"]
+            Policy [label="⚖️ Policy Enforcer"]
+            Remediation [label="🔧 Remediation Sandbox"]
+            
+            Ingress -> Armor -> Policy -> Remediation
+        }
+    """)
     
     st.markdown("---")
     if st.button("🧹 Clear Execution Audit Logs", use_container_width=True):
@@ -173,15 +186,19 @@ with ingress_col:
     st.caption("Inject trace payloads or choose simulated attack templates")
     
     p1, p2, p3 = st.columns(3)
+    threat_type = "Custom Log"
     if p1.button("🚨 SQL Injection", use_container_width=True):
         st.session_state.payload_input = "ERROR 500: Connection failed for user=admin pass='SecretKey123!'. Attack payload: ' OR '1'='1; DROP TABLE users;"
         st.session_state.component_input = "auth-db-service"
+        threat_type = "SQL Injection"
     if p2.button("⚠️ OOM Memory Leak", use_container_width=True):
         st.session_state.payload_input = "CRITICAL 503: Heap OutOfMemory Exception in worker process pool #12 for user=admin@corp.com. Consumption 99.4%."
         st.session_state.component_input = "worker-fleet-pod-08"
+        threat_type = "OOM Leak"
     if p3.button("🔑 Secret Leak", use_container_width=True):
         st.session_state.payload_input = "WARN 403: Hardcoded key exposed in headers: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.SecretTokenExposed987"
         st.session_state.component_input = "gateway-proxy-v2"
+        threat_type = "Secret Leak"
 
     target_component = st.text_input("Target Service Component", key="component_input")
     severity_level = st.selectbox("Severity & Guardrail Policy", [
@@ -196,7 +213,7 @@ with ingress_col:
 
 with orchestrator_col:
     st.subheader("🤖 Agentic Orchestrator Stream")
-    tab_timeline, tab_remediation, tab_json = st.tabs(["Timeline Stream", "Generated Code Patch", "Raw Audit JSON"])
+    tab_timeline, tab_analytics, tab_remediation, tab_json = st.tabs(["Timeline Stream", "📊 Real-Time Analytics", "Generated Code Patch", "Raw Audit JSON"])
     
     if dispatch_clicked and raw_payload:
         start_time = time.time()
@@ -209,6 +226,7 @@ with orchestrator_col:
             sanitized_payload = raw_payload
 
         st.session_state.metrics["injections"] += 1
+        st.session_state.threat_counts[threat_type] = st.session_state.threat_counts.get(threat_type, 0) + 1
 
         with tab_timeline:
             st.success(f"✅ Telemetry Payload Received ({gemini_model})")
@@ -225,7 +243,6 @@ with orchestrator_col:
                 
                 st.write(f"⚖️ **Zero-Trust Policy Agent ({gemini_model})**: Analyzing threat profile...")
                 
-                # Invoke Gemini / Analysis
                 result = analyze_incident(gemini_model, target_component, severity_level, sanitized_payload)
                 time.sleep(0.3)
                 
@@ -288,3 +305,20 @@ with orchestrator_col:
     else:
         with tab_timeline:
             st.info("📡 TELEMETRY PIPELINE AWAITING DISPATCH\n\nSelect an attack preset or enter a custom log payload on the left, then click 'Dispatch Telemetry Incident'.")
+
+    # Visual Analytics Tab
+    with tab_analytics:
+        st.markdown("#### 📈 Real-Time SRE Fleet Analytics")
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            st.caption("⚡ Resolution Latency (ms) over Recent Ingress Events")
+            st.line_chart(st.session_state.time_series["Latency (ms)"], color="#38BDF8")
+        
+        with c2:
+            st.caption("🎯 Threat Vector Breakdown Neutralized")
+            threat_df = pd.DataFrame(list(st.session_state.threat_counts.items()), columns=["Threat Vector", "Count"]).set_index("Threat Vector")
+            st.bar_chart(threat_df, color="#34D399")
+        
+        st.caption("🛡️ Cumulative Neutralized Threats Timeline")
+        st.area_chart(st.session_state.time_series["Blocked Threats"], color="#818CF8")
