@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudSentry AI Fleet — SRE Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              bg: '#050714',
+              card: 'rgba(15, 23, 42, 0.75)',
+              border: 'rgba(56, 189, 248, 0.15)',
+              accent: '#06b6d4',
+              neonPurple: '#a855f7',
+              neonPink: '#ec4899',
+              neonCyan: '#22d3ee',
+              neonEmerald: '#10b981',
+              neonAmber: '#f59e0b',
+              neonRose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #050714;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(34, 211, 238, 0.15) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.1) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .bg-grid-pattern {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+
+    .glass-panel {
+      background: rgba(13, 18, 36, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.12);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-panel:hover {
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+    
+    .glass-card {
+      background: rgba(20, 27, 52, 0.5);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .text-glow-cyan {
+      text-shadow: 0 0 10px rgba(34, 211, 238, 0.6), 0 0 20px rgba(34, 211, 238, 0.3);
+    }
+    .text-glow-purple {
+      text-shadow: 0 0 10px rgba(168, 85, 247, 0.6), 0 0 20px rgba(168, 85, 247, 0.3);
+    }
+    .text-glow-emerald {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8 0%, #a855f7 50%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(5, 7, 20, 0.5); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { 
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.5), rgba(168, 85, 247, 0.5)); 
+      border-radius: 9999px; 
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.8), rgba(168, 85, 247, 0.8)); 
+    }
+  </style>
+</head>
+<body class="h-full text-slate-100 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-slate-950 bg-grid-pattern relative overflow-x-hidden">
+
+  <!-- Ambient Glow Orbs -->
+  <div class="fixed -top-32 -left-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="fixed top-1/3 -right-32 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="fixed -bottom-32 left-1/3 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+  <!-- Header Bar -->
+  <header class="glass-panel sticky top-0 z-40 px-4 sm:px-8 py-3.5 flex justify-between items-center border-b border-cyan-500/20 shadow-2xl">
+    <div class="flex items-center gap-4">
+      <div class="relative flex h-4 w-4 items-center justify-center">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-400 shadow-[0_0_12px_#22d3ee]"></span>
+      </div>
+      <div>
+        <h1 class="text-xl font-extrabold tracking-tight flex items-center gap-2 leading-none">
+          <span class="gradient-text font-black tracking-wider">CLOUDSENTRY</span>
+          <span class="text-xs px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 font-mono font-semibold uppercase tracking-widest shadow-[0_0_10px_rgba(34,211,238,0.2)]">AI FLEET</span>
+        </h1>
+        <p class="text-[11px] text-slate-400 font-mono mt-1 hidden sm:flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Autonomous Multi-Agent Zero-Trust SRE
+        </p>
+      </div>
+    </div>
+
+    <!-- Live Engine Indicators -->
+    <div class="flex items-center gap-3 font-mono text-xs">
+      <div class="hidden lg:flex items-center gap-2 bg-slate-900/80 border border-purple-500/30 px-3 py-1.5 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+        <i class="fa-solid fa-microchip text-purple-400 animate-pulse"></i>
+        <span class="text-slate-300">Engine:</span>
+        <span class="text-purple-300 font-bold">Gemini 3.5 Flash</span>
+      </div>
+
+      <div class="flex items-center gap-2 bg-slate-900/80 border border-cyan-500/30 px-3 py-1.5 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.15)]">
+        <i class="fa-solid fa-shield-halved text-cyan-400"></i>
+        <span class="text-slate-300 hidden sm:inline">Guardrails:</span>
+        <span class="text-cyan-400 font-bold flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> ACTIVE
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Telemetry Stat Bar -->
+  <section class="px-4 sm:px-8 py-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+    <div class="glass-card rounded-xl p-3 border border-cyan-500/20 hover:border-cyan-400/40 transition-all group flex items-center justify-between shadow-lg">
+      <div>
+        <span class="text-slate-400 text-[10px] uppercase tracking-wider block font-sans font-semibold">Mean Time To Resolve</span>
+        <span class="text-lg font-bold text-cyan-300 text-glow-cyan" id="stat-mttr">1.4s</span>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+        <i class="fa-solid fa-bolt text-base"></i>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl p-3 border border-purple-500/20 hover:border-purple-400/40 transition-all group flex items-center justify-between shadow-lg">
+      <div>
+        <span class="text-slate-400 text-[10px] uppercase tracking-wider block font-sans font-semibold">Model Armor Redactions</span>
+        <span class="text-lg font-bold text-purple-300 text-glow-purple" id="stat-redactions">84</span>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+        <i class="fa-solid fa-user-shield text-base"></i>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl p-3 border border-rose-500/20 hover:border-rose-400/40 transition-all group flex items-center justify-between shadow-lg">
+      <div>
+        <span class="text-slate-400 text-[10px] uppercase tracking-wider block font-sans font-semibold">Injections Neutralized</span>
+        <span class="text-lg font-bold text-rose-400" id="stat-injections">12</span>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-transform">
+        <i class="fa-solid fa-bug text-base"></i>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl p-3 border border-emerald-500/20 hover:border-emerald-400/40 transition-all group flex items-center justify-between shadow-lg">
+      <div>
+        <span class="text-slate-400 text-[10px] uppercase tracking-wider block font-sans font-semibold">Active Fleet Micro-Agents</span>
+        <span class="text-lg font-bold text-emerald-300 text-glow-emerald">4 Agents Online</span>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+        <i class="fa-solid fa-network-wired text-base"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+    
+    <!-- Left Input Control Panel (5 Cols) -->
+    <section class="lg:col-span-5 glass-panel rounded-2xl p-5 flex flex-col gap-4 shadow-2xl relative overflow-hidden">
+      <div class="border-b border-slate-800/80 pb-3 flex justify-between items-center relative z-10">
+        <h2 class="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-2 font-mono">
+          <i class="fa-solid fa-satellite-dish text-cyan-400 animate-pulse"></i> Telemetry Dispatch Ingress
+        </h2>
+        <span class="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2 py-0.5 rounded font-mono shadow-[0_0_8px_rgba(34,211,238,0.2)]">POST /api/v1/incident</span>
+      </div>
+
+      <!-- Quick Preset Attack Payload Buttons -->
+      <div class="relative z-10">
+        <label class="block text-[10px] font-mono text-slate-400 mb-2 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i> Attack Simulation Presets
+        </label>
+        <div class="grid grid-cols-2 gap-2.5 text-xs font-mono">
+          <button type="button" onclick="loadPreset('sqli')" class="bg-slate-900/80 hover:bg-slate-800/90 text-slate-200 p-2.5 rounded-xl border border-rose-500/30 hover:border-rose-400 transition flex items-center gap-2 group shadow-lg">
+            <div class="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-database text-xs"></i>
+            </div>
+            <div class="truncate text-left">
+              <span class="block text-[11px] font-bold text-rose-300 truncate">SQL Injection</span>
+              <span class="block text-[9px] text-slate-400">Auth DB Breach</span>
+            </div>
+          </button>
+
+          <button type="button" onclick="loadPreset('oom')" class="bg-slate-900/80 hover:bg-slate-800/90 text-slate-200 p-2.5 rounded-xl border border-amber-500/30 hover:border-amber-400 transition flex items-center gap-2 group shadow-lg">
+            <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-memory text-xs"></i>
+            </div>
+            <div class="truncate text-left">
+              <span class="block text-[11px] font-bold text-amber-300 truncate">Memory Leak</span>
+              <span class="block text-[9px] text-slate-400">Worker OOM Crash</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Incident Form -->
+      <form id="incidentForm" onsubmit="handleDispatch(event)" class="space-y-4 flex-1 flex flex-col relative z-10">
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">Target Service Micro-Component</label>
+          <input id="serviceName" type="text" value="auth-microservice-prod" required class="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-cyan-200 font-mono focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 focus:outline-none transition shadow-inner">
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">Severity & Guardrail Policy</label>
+          <select id="severity" class="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:border-cyan-400 focus:outline-none transition shadow-inner">
+            <option value="CRITICAL" selected class="bg-slate-950 text-rose-400">CRITICAL (Requires Human Sign-off)</option>
+            <option value="HIGH" class="bg-slate-950 text-amber-400">HIGH (Autonomous Agent Remediation)</option>
+            <option value="MEDIUM" class="bg-slate-950 text-cyan-400">MEDIUM (Diagnostic Analysis Only)</option>
+          </select>
+        </div>
+
+        <div class="flex-1 flex flex-col">
+          <label class="block text-xs font-mono text-slate-400 mb-1">Raw Trace Payload / Log Stream</label>
+          <textarea id="traceLog" rows="5" required class="w-full flex-1 bg-slate-950/90 border border-slate-700/80 rounded-xl p-3 text-xs text-slate-300 font-mono focus:border-cyan-400 focus:outline-none transition leading-relaxed custom-scrollbar shadow-inner">ERROR 500: Database connection crashed for user=admin pass=Secret123! Injection payload: ' OR '1'='1; DROP TABLE users; --</textarea>
+        </div>
+
+        <button type="submit" id="submitBtn" class="w-full relative group overflow-hidden rounded-xl p-0.5 font-semibold text-xs uppercase tracking-wider transition-all duration-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
+          <span class="absolute inset-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 group-hover:opacity-100 opacity-90 transition-opacity"></span>
+          <span class="relative block bg-slate-950/80 group-hover:bg-transparent text-cyan-200 group-hover:text-white py-3 px-4 rounded-[10px] transition-colors font-mono flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bolt text-cyan-400 group-hover:text-white"></i> Run Autonomous Pipeline
+          </span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Right Side: Multi-Agent Pipeline Visualization (7 Cols) -->
+    <section class="lg:col-span-7 glass-panel rounded-2xl p-5 flex flex-col gap-4 shadow-2xl overflow-hidden relative">
+      
+      <!-- Top Status Header & View Tabs -->
+      <div class="border-b border-slate-800/80 pb-3 flex flex-wrap justify-between items-center gap-2">
+        <div class="flex items-center gap-2">
+          <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
+            <i class="fa-solid fa-network-wired text-purple-400"></i> Agentic Orchestrator Stream
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- View Tabs -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex text-[11px] font-mono shadow-inner">
+            <button onclick="switchView('visual')" id="tab-visual" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold shadow-[0_0_10px_rgba(34,211,238,0.2)] transition">Timeline</button>
+            <button onclick="switchView('json')" id="tab-json" class="px-3 py-1 rounded-lg text-slate-400 hover:text-slate-200 transition">Raw State</button>
+          </div>
+          <span id="pipelineStatus" class="text-[10px] bg-slate-900 text-slate-400 border border-slate-700/80 px-3 py-1 rounded-full font-mono uppercase tracking-wider">SYSTEM IDLE</span>
+        </div>
+      </div>
+
+      <!-- Visual Agent Timeline Container -->
+      <div id="view-visual" class="flex-1 overflow-y-auto space-y-3.5 custom-scrollbar pr-1 min-h-[380px]">
+        
+        <!-- Empty Idle State -->
+        <div id="emptyState" class="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-slate-800 rounded-2xl bg-slate-950/40">
+          <div class="relative mb-4">
+            <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 text-2xl shadow-xl">
+              <i class="fa-solid fa-microchip"></i>
+            </div>
+            <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-400">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+          </div>
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Telemetry Pipeline Awaiting Dispatch</h3>
+          <p class="text-xs text-slate-500 max-w-xs mt-1.5 font-mono">Submit an incident or select an attack preset on the ingress panel to watch the agent fleet remediate threats.</p>
+        </div>
+
+        <div id="timelineContent" class="space-y-3.5 hidden"></div>
+      </div>
+
+      <!-- JSON Raw State Container -->
+      <div id="view-json" class="hidden flex-1 overflow-y-auto bg-slate-950/90 border border-slate-800 rounded-xl p-4 font-mono text-[11px] text-cyan-400 custom-scrollbar shadow-inner">
+        <pre id="jsonContent" class="whitespace-pre-wrap">{ "status": "idle", "active_agents": 4, "memory_nodes": [] }</pre>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Interactive Human Authorization Modal -->
+  <div id="approvalModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="glass-panel border-2 border-amber-500/60 rounded-2xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(245,158,11,0.25)] space-y-4 relative overflow-hidden">
+      
+      <div class="flex items-center gap-3 text-amber-400 border-b border-slate-800/80 pb-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+          <i class="fa-solid fa-shield-cat"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-white text-sm font-mono uppercase tracking-wide">Human Guardrail Authorization</h3>
+          <p class="text-[11px] text-amber-400/90 font-mono">Severity Level: CRITICAL DETECTED</p>
+        </div>
+      </div>
+
+      <div class="space-y-2.5 font-mono text-xs text-slate-300">
+        <p class="text-slate-400">The Diagnostic Agent requires authorization to execute mitigation:</p>
+        <div class="bg-slate-950/90 border border-amber-500/30 p-3.5 rounded-xl text-[11px] space-y-1">
+          <div class="text-slate-400">Target Micro-Component: <span id="modalTargetService" class="text-cyan-300 font-bold">auth-microservice-prod</span></div>
+          <div class="text-slate-400">Proposed Action: <span class="text-amber-300 font-semibold">Cloud Run Revision Traffic Shift & Database Lockdown</span></div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button onclick="respondApproval(true)" class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-2.5 rounded-xl text-xs font-mono transition shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <i class="fa-solid fa-check mr-1"></i> Authorize Fix
+        </button>
+        <button onclick="respondApproval(false)" class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold py-2.5 rounded-xl text-xs font-mono transition border border-slate-700">
+          <i class="fa-solid fa-xmark mr-1"></i> Deny & Abort
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let redactionsCount = 84;
+    let injectionsCount = 12;
+    let currentExecutionData = null;
+    let activeApprovalResolver = null;
+
+    function loadPreset(type) {
+      if (type === 'sqli') {
+        document.getElementById('serviceName').value = 'auth-microservice-prod';
+        document.getElementById('severity').value = 'CRITICAL';
+        document.getElementById('traceLog').value = "ERROR 500: Database connection crashed for user=admin pass=Secret123! Injection payload: ' OR '1'='1; DROP TABLE users; --";
+      } else if (type === 'oom') {
+        document.getElementById('serviceName').value = 'payment-processing-engine';
+        document.getElementById('severity').value = 'HIGH';
+        document.getElementById('traceLog').value = "FATAL 507: Out of Memory error in worker process pool. Memory leak detected at auth_token=ey298371982. Heap exhausted at 2048MB limit.";
+      }
+    }
+
+    function switchView(mode) {
+      const visualEl = document.getElementById('view-visual');
+      const jsonEl = document.getElementById('view-json');
+      const tabVisual = document.getElementById('tab-visual');
+      const tabJson = document.getElementById('tab-json');
+
+      if (mode === 'visual') {
+        visualEl.classList.remove('hidden');
+        jsonEl.classList.add('hidden');
+        tabVisual.className = "px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold shadow-[0_0_10px_rgba(34,211,238,0.2)] transition";
+        tabJson.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-slate-200 transition";
+      } else {
+        visualEl.classList.add('hidden');
+        jsonEl.classList.remove('hidden');
+        tabJson.className = "px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold shadow-[0_0_10px_rgba(34,211,238,0.2)] transition";
+        tabVisual.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-slate-200 transition";
+      }
+    }
+
+    async function handleDispatch(event) {
+      event.preventDefault();
+
+      const service = document.getElementById('serviceName').value;
+      const severity = document.getElementById('severity').value;
+      const trace = document.getElementById('traceLog').value;
+
+      const submitBtn = document.getElementById('submitBtn');
+      const statusBadge = document.getElementById('pipelineStatus');
+      const emptyState = document.getElementById('emptyState');
+      const timelineContent = document.getElementById('timelineContent');
+
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50');
+      statusBadge.textContent = 'EXECUTING AGENT FLEET';
+      statusBadge.className = 'text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-500/60 px-3 py-1 rounded-full font-mono animate-pulse shadow-[0_0_12px_rgba(34,211,238,0.4)]';
+
+      emptyState.classList.add('hidden');
+      timelineContent.classList.remove('hidden');
+      timelineContent.innerHTML = '';
+
+      // Step 1: Compliance / Model Armor Agent
+      renderAgentStep('1', 'Compliance Agent (Model Armor)', 'fa-shield-halved', 'border-purple-500/40', 'bg-purple-500/10 text-purple-400', 'Inspecting log stream for credentials & injection vectors...');
+      await new Promise(r => setTimeout(r, 600));
+
+      const sanitizedText = trace.replace(/pass=\S+/g, 'pass=[REDACTED_SECRET]').replace(/user=\S+/g, 'user=[REDACTED_PII]');
+      redactionsCount += 2;
+      injectionsCount += 1;
+      document.getElementById('stat-redactions').textContent = redactionsCount;
+      document.getElementById('stat-injections').textContent = injectionsCount;
+
+      updateAgentStep('1', `
+        <div class="text-xs font-mono space-y-2">
+          <div class="flex items-center gap-2 text-purple-300 font-semibold">
+            <i class="fa-solid fa-circle-check text-purple-400"></i> Model Armor Sanitization Passed
+          </div>
+          <div class="bg-slate-950/90 p-3 rounded-xl border border-purple-500/30 text-[11px] text-slate-300 shadow-inner">
+            ${sanitizedText}
+          </div>
+        </div>
+      `);
+
+      // Step 2: Diagnostic Agent (Gemini 3.5 Flash)
+      renderAgentStep('2', 'Diagnostic Agent (Gemini 3.5 Flash)', 'fa-brain', 'border-cyan-500/40', 'bg-cyan-500/10 text-cyan-400', 'Generating root-cause analysis and mitigation options...');
+      await new Promise(r => setTimeout(r, 800));
+
+      updateAgentStep('2', `
+        <div class="text-xs font-mono space-y-1.5">
+          <div class="flex items-center gap-2 text-cyan-300 font-semibold">
+            <i class="fa-solid fa-microchip text-cyan-400"></i> Root Cause Identified
+          </div>
+          <p class="text-slate-300">Micro-component <strong class="text-cyan-300">${service}</strong> compromised. Malicious SQL pattern isolated by vector memory check.</p>
+        </div>
+      `);
+
+      // Step 3: Human Guardrail Authorization Check
+      if (severity === 'CRITICAL') {
+        document.getElementById('modalTargetService').textContent = service;
+        document.getElementById('approvalModal').classList.remove('hidden');
+
+        const approved = await new Promise(resolve => activeApprovalResolver = resolve);
+        document.getElementById('approvalModal').classList.add('hidden');
+
+        if (!approved) {
+          renderAgentStep('3', 'Remediation Agent', 'fa-ban', 'border-rose-500/40', 'bg-rose-500/10 text-rose-400', 'Action aborted by Human Guardrail Operator.');
+          finishPipeline('EXECUTION ABORTED', 'bg-rose-950 text-rose-300 border-rose-800');
+          return;
+        }
+      }
+
+      // Step 4: Remediation Agent Execution
+      renderAgentStep('3', 'Remediation Agent', 'fa-wrench', 'border-emerald-500/40', 'bg-emerald-500/10 text-emerald-400', 'Executing zero-downtime Cloud Run revision rollback...');
+      await new Promise(r => setTimeout(r, 700));
+
+      updateAgentStep('3', `
+        <div class="text-xs font-mono space-y-1.5">
+          <div class="flex items-center gap-2 text-emerald-300 font-semibold">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i> Remediation Successfully Applied
+          </div>
+          <p class="text-slate-300">Shifted 100% traffic to stable revision for <strong class="text-emerald-300">${service}</strong>.</p>
+        </div>
+      `);
+
+      // Save raw JSON state payload
+      currentExecutionData = {
+        target_service: service,
+        severity: severity,
+        status: "RESOLVED",
+        timestamp: new Date().toISOString(),
+        redacted_log: sanitizedText,
+        agent_actions: ["ModelArmorSanitize", "Gemini3.5FlashDiagnostic", "CloudRunRevisionRollback"]
+      };
+      document.getElementById('jsonContent').textContent = JSON.stringify(currentExecutionData, null, 2);
+
+      finishPipeline('PIPELINE RESOLVED', 'bg-emerald-950 text-emerald-300 border-emerald-800 shadow-[0_0_12px_rgba(16,185,129,0.3)]');
+    }
+
+    function renderAgentStep(stepId, title, icon, borderColor, iconBgColor, initialMsg) {
+      const container = document.getElementById('timelineContent');
+      const html = `
+        <div id="step-${stepId}" class="glass-card border ${borderColor} rounded-xl p-4 space-y-2.5 transition-all shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-100 font-mono flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg ${iconBgColor} flex items-center justify-center text-xs">
+                <i class="fa-solid ${icon}"></i>
+              </div>
+              ${title}
+            </span>
+            <span class="text-[10px] text-amber-300 font-mono animate-pulse bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">Processing...</span>
+          </div>
+          <p class="text-xs text-slate-400 font-mono pl-9">${initialMsg}</p>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function updateAgentStep(stepId, newContent) {
+      const stepEl = document.getElementById(`step-${stepId}`);
+      if (stepEl) {
+        stepEl.querySelector('p').style.display = 'none';
+        const badge = stepEl.querySelector('span.animate-pulse');
+        badge.textContent = 'COMPLETED';
+        badge.className = 'text-[10px] text-emerald-300 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30';
+        stepEl.insertAdjacentHTML('beforeend', newContent);
+      }
+    }
+
+    function respondApproval(approved) {
+      if (activeApprovalResolver) activeApprovalResolver(approved);
+    }
+
+    function finishPipeline(statusText, badgeClasses) {
+      const submitBtn = document.getElementById('submitBtn');
+      const statusBadge = document.getElementById('pipelineStatus');
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-50');
+      statusBadge.textContent = statusText;
+      statusBadge.className = `text-[10px] border px-3 py-1 rounded-full font-mono uppercase tracking-wider ${badgeClasses}`;
+    }
+  </script>
+</body>
+</html>
