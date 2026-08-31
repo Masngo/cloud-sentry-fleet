@@ -53,10 +53,11 @@ Respond ONLY with raw JSON matching this format:
             pass
 
     ts = int(time.time())
+    comp_clean = re.sub(r'[^a-zA-Z0-9_]', '_', component)
     return {
         "assessment": f"Detected critical operational threat in {component}. Sanitized payload evaluated against Zero-Trust SRE rules.",
         "action_taken": f"Isolated {component} service instance and deployed automated ingress lock.",
-        "terraform": f"""resource "google_compute_firewall" "deny_{component.replace('-', '_')}_{ts}" {{
+        "terraform": f"""resource "google_compute_firewall" "deny_{comp_clean}_{ts}" {{
   name    = "deny-incident-{ts}"
   network = "default"
 
@@ -215,8 +216,14 @@ with ingress_col:
 
 with orchestrator_col:
     st.subheader("🤖 Agentic Orchestrator Stream")
-    tab_timeline, tab_analytics, tab_remediation, tab_json = st.tabs(["Timeline Stream", "📊 Real-Time Analytics", "Generated Code Patch", "Raw Audit JSON"])
+    tab_timeline, tab_analytics, tab_remediation, tab_json = st.tabs([
+        "Timeline Stream",
+        "📊 Real-Time Analytics",
+        "🛠️ Generated Code Patch",
+        "📜 Raw Audit JSON"
+    ])
     
+    # Handle Dispatch Event
     if dispatch_clicked and raw_payload:
         start_time = time.time()
         
@@ -274,49 +281,31 @@ with orchestrator_col:
                 "engine": gemini_model
             })
 
-        with tab_remediation:
-            st.markdown("#### 🛠️ Auto-Generated Terraform Mitigation Patch")
-            st.code(result["terraform"], language="hcl")
-            st.markdown("#### ⚡ gcloud Remediation Command")
-            st.code(result["gcloud"], language="bash")
+    # Active record selection
+    latest_record = st.session_state.history[-1] if st.session_state.history else None
 
-        with tab_json:
-            st.json({
-                "incident_id": f"sentry-evt-{int(time.time())}",
-                "engine": gemini_model,
-                "target_component": target_component,
-                "severity": severity_level,
-                "guardrails_active": guardrail_mode,
-                "sanitized_payload": sanitized_payload,
-                "remediation": result
-            })
-
-    elif st.session_state.history:
-        latest = st.session_state.history[-1]
+    # TAB 1: Timeline Stream
+    if not (dispatch_clicked and raw_payload):
         with tab_timeline:
-            st.info("Displaying Last Execution Record")
-            st.markdown(f"**Timestamp:** `{latest['timestamp']}`")
-            st.markdown(f"**Target:** `{latest['target']}`")
-            st.markdown(f"**Assessment:** {latest['analysis']['assessment']}")
-            st.code(latest['sanitized_payload'], language="sql")
-        with tab_remediation:
-            st.code(latest['analysis']['terraform'], language="hcl")
-            st.code(latest['analysis']['gcloud'], language="bash")
-        with tab_json:
-            st.json(st.session_state.history)
-    else:
-        with tab_timeline:
-            st.info("📡 TELEMETRY PIPELINE AWAITING DISPATCH\n\nSelect an attack preset or enter a custom log payload on the left, then click 'Dispatch Telemetry Incident'.")
+            if latest_record:
+                st.info("Displaying Last Execution Record")
+                st.markdown(f"**Timestamp:** `{latest_record['timestamp']}`")
+                st.markdown(f"**Target Component:** `{latest_record['target']}`")
+                st.markdown(f"**Engine Used:** `{latest_record['engine']}`")
+                st.markdown(f"**Assessment:** {latest_record['analysis']['assessment']}")
+                st.markdown(f"**Action Taken:** {latest_record['analysis']['action_taken']}")
+                st.markdown("**Sanitized Trace Payload:**")
+                st.code(latest_record['sanitized_payload'], language="sql")
+            else:
+                st.info("📡 TELEMETRY PIPELINE AWAITING DISPATCH\n\nSelect an attack preset on the left or enter a custom log payload, then click 'Dispatch Telemetry Incident'.")
 
-    # Visual Analytics Tab
+    # TAB 2: Real-Time Analytics
     with tab_analytics:
         st.markdown("#### 📈 Real-Time SRE Fleet Analytics")
-        
         c1, c2 = st.columns(2)
         with c1:
             st.caption("⚡ Resolution Latency (ms) over Recent Ingress Events")
             st.line_chart(st.session_state.time_series["Latency (ms)"], color="#38BDF8")
-        
         with c2:
             st.caption("🎯 Threat Vector Breakdown Neutralized")
             threat_df = pd.DataFrame(list(st.session_state.threat_counts.items()), columns=["Threat Vector", "Count"]).set_index("Threat Vector")
@@ -324,3 +313,55 @@ with orchestrator_col:
         
         st.caption("🛡️ Cumulative Neutralized Threats Timeline")
         st.area_chart(st.session_state.time_series["Blocked Threats"], color="#818CF8")
+
+    # TAB 3: Generated Code Patch
+    with tab_remediation:
+        st.markdown("#### 🛠️ Dynamic Infrastructure Mitigation Code")
+        if latest_record:
+            st.caption(f"Generated for Target Component: `{latest_record['target']}`")
+            st.markdown("##### 📦 Terraform HCL Firewall Rule")
+            st.code(latest_record["analysis"]["terraform"], language="hcl")
+            st.markdown("##### ⚡ gcloud Isolation Command")
+            st.code(latest_record["analysis"]["gcloud"], language="bash")
+        else:
+            st.caption("💡 Sample Mitigation Patch (Dispatch an incident to generate dynamic scripts)")
+            st.markdown("##### 📦 Terraform HCL Firewall Rule")
+            sample_tf = """resource "google_compute_firewall" "deny_auth_microservice_prod" {
+  name    = "deny-incident-1700000000"
+  network = "default"
+
+  deny {
+    protocol = "tcp"
+    ports    = ["80", "443", "8080"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["auth-microservice-prod"]
+}"""
+            st.code(sample_tf, language="hcl")
+            st.markdown("##### ⚡ gcloud Isolation Command")
+            sample_gcloud = "gcloud compute instances stop auth-microservice-prod-instance-01 --zone=us-central1-a"
+            st.code(sample_gcloud, language="bash")
+
+    # TAB 4: Raw Audit JSON
+    with tab_json:
+        st.markdown("#### 📜 Raw Execution Audit & Security Logs")
+        if st.session_state.history:
+            st.json(st.session_state.history)
+        else:
+            st.caption("💡 Sample Audit Event Schema (Live logs populate here after dispatch)")
+            st.json([{
+                "event_id": "sentry-evt-sample-01",
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "engine": "Gemini 3.5 Flash",
+                "target_component": "auth-microservice-prod",
+                "severity": "HIGH (Automated Sandbox Isolation)",
+                "guardrails_active": True,
+                "sanitized_payload": "ERROR 500: Connection failed for user=admin pass='[REDACTED_CREDENTIAL]'.",
+                "analysis": {
+                    "assessment": "SQL Injection attempt detected on auth service.",
+                    "action_taken": "Isolated microservice and deployed ingress lock.",
+                    "terraform": "resource \"google_compute_firewall\" \"deny_auth\" { ... }",
+                    "gcloud": "gcloud compute instances stop auth-microservice-prod-01"
+                }
+            }])
